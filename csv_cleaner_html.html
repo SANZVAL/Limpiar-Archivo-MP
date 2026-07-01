@@ -120,7 +120,7 @@
 
   <div class="criterios">
     <h3>Criterios de exclusión activos</h3>
-    <div class="criterio"><div class="dot"></div><div><div class="nombre">88 xx / 200001460</div><div class="desc">Código interno de operación</div></div></div>
+    <div class="criterio"><div class="dot"></div><div><div class="nombre">88 xx / 20000</div><div class="desc">Código interno de operación</div></div></div>
     <div class="criterio"><div class="dot"></div><div><div class="nombre">MP-Q xxx</div><div class="desc">Transacción de Mercado Pago</div></div></div>
     <div class="criterio"><div class="dot"></div><div><div class="nombre">Venta</div><div class="desc">Venta realizada</div></div></div>
     <div class="criterio"><div class="dot"></div><div><div class="nombre">MELIPAYMENTS-COLLECTIONATTEMPT</div><div class="desc">Intento de cobro</div></div></div>
@@ -168,7 +168,7 @@ const CRITERIOS = [
   c => /^Venta/i.test(c),
   c => /^MELIPAYMENTS-COLLECTIONATTEMPT/i.test(c),
  c => /^INSTORE/i.test(c),
-  c => c.startsWith('200001460')
+  c => c.startsWith('20000')
 ];
 
 let csvClean = '', csvRemoved = '', origName = '';
