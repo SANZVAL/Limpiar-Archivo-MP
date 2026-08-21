@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Limpieza de Archivo MP</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -23,7 +24,7 @@
     border-radius: 18px;
     padding: 2.5rem;
     width: 100%;
-    max-width: 660px;
+    max-width: 700px;
   }
   .header { display: flex; align-items: center; gap: 18px; margin-bottom: 0.4rem; }
   .logo { width: 58px; height: 58px; border-radius: 12px; overflow: hidden; flex-shrink: 0; }
@@ -53,16 +54,21 @@
     border: 1px solid #2a2a45;
     border-radius: 12px;
     padding: 1rem 1.25rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.25rem;
   }
   .criterios h3 { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #50507a; margin-bottom: 0.75rem; }
+  .criterios h3.grupo2 { margin-top: 0.9rem; }
   .criterio { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 0.5rem; }
   .criterio .dot { width: 6px; height: 6px; border-radius: 50%; background: #534AB7; margin-top: 5px; flex-shrink: 0; }
   .criterio .nombre { font-size: 13px; color: #AFA9EC; font-weight: 500; }
   .criterio .desc { font-size: 12px; color: #50507a; }
 
+  .formatos-nota { font-size: 11px; color: #50507a; margin-bottom: 1.5rem; line-height: 1.5; }
+
   .resultados { display: none; }
   .divider { border: none; border-top: 1px solid #2a2a45; margin: 1.5rem 0; }
+
+  .formato-badge { display:inline-block; font-size:11px; color:#AFA9EC; background:#1a1a35; border:1px solid #2a2a45; border-radius:8px; padding:4px 10px; margin-bottom: 1rem; }
 
   .stats  { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
   .stats2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 1.5rem; }
@@ -87,6 +93,35 @@
   .aviso-limpio .monto-total { font-size: 13px; color: #7070a0; margin-top: 0.5rem; }
   .aviso-limpio .monto-total span { color: #1D9E75; font-weight: 600; }
 
+  .aviso-error {
+    display: none;
+    background: #2e0a0a;
+    border: 1px solid #E24B4A;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+  .aviso-error p { font-size: 14px; color: #ffb3b0; }
+
+  .seccion { margin-bottom: 1.5rem; }
+  .seccion h3 { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #7070a0; margin-bottom: 0.6rem; }
+  .tabla-motivos { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tabla-motivos td { padding: 6px 4px; border-bottom: 1px solid #1e1e33; color: #c0c0e0; }
+  .tabla-motivos td.num { text-align: right; color: #AFA9EC; white-space: nowrap; }
+  .tabla-motivos tr.anomalia td { color: #ffb3b0; }
+  .tabla-motivos tr.total td { border-bottom: none; padding-top: 10px; font-weight: 700; color: #fff; }
+
+  .aviso-anomalia {
+    background: #2e1a0a;
+    border: 1px solid #d98a3d;
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 13px;
+    color: #ffd7a8;
+  }
+
   .btn-group { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 1rem; }
   .btn {
     flex: 1; min-width: 180px;
@@ -109,26 +144,45 @@
     <div class="logo"><img src="logo.png" alt="Logo SANZVAL"></div>
     <div class="header-info"><h1>Limpieza de Archivo MP</h1></div>
   </div>
-  <p class="sub">Subí tu archivo — se limpia automáticamente y descargás los dos archivos.</p>
+  <p class="sub">Subí tu archivo — se limpia automáticamente y descargás los resultados.</p>
 
   <div class="drop-zone" id="dropZone">
     <div class="drop-icon" id="drop-icon">📂</div>
     <p id="drop-text">Arrastrá el archivo acá o <strong>hacé clic para seleccionar</strong></p>
-    <span id="drop-sub">Solo archivos .csv</span>
-    <input type="file" id="fileInput" accept=".csv">
+    <span id="drop-sub">Archivos .csv o .xlsx</span>
+    <input type="file" id="fileInput" accept=".csv,.txt,.xlsx,.xls">
   </div>
 
   <div class="criterios">
-    <h3>Criterios de exclusión activos</h3>
-    <div class="criterio"><div class="dot"></div><div><div class="nombre">88 xx / 20000</div><div class="desc">Código interno de operación</div></div></div>
-    <div class="criterio"><div class="dot"></div><div><div class="nombre">MP-Q xxx</div><div class="desc">Transacción de Mercado Pago</div></div></div>
-    <div class="criterio"><div class="dot"></div><div><div class="nombre">Venta</div><div class="desc">Venta realizada</div></div></div>
-    <div class="criterio"><div class="dot"></div><div><div class="nombre">MELIPAYMENTS-COLLECTIONATTEMPT</div><div class="desc">Intento de cobro</div></div></div>
-   <div class="criterio"><div class="dot"></div><div><div class="nombre">INSTORE-</div><div class="desc">En tienda física</div></div></div>
+    <h3>Se eliminan filas por prefijo</h3>
+    <div class="criterio"><div class="dot"></div><div><div class="nombre">Venta</div><div class="desc">Venta presencial (POS)</div></div></div>
+    <div class="criterio"><div class="dot"></div><div><div class="nombre">INSTORE</div><div class="desc">INSTORE (QR/local)</div></div></div>
+    <div class="criterio"><div class="dot"></div><div><div class="nombre">MP-Q</div><div class="desc">Registro MP-Q</div></div></div>
+    <div class="criterio"><div class="dot"></div><div><div class="nombre">MELIPAYMENTS-COLLECTIONATTEMPT</div><div class="desc">Intento de cobro MP</div></div></div>
+    <div class="criterio"><div class="dot"></div><div><div class="nombre">,88 / ;88</div><div class="desc">Registro inválido</div></div></div>
+    <div class="criterio"><div class="dot"></div><div><div class="nombre">20000</div><div class="desc">🛒 Compras COTESMA Saldo de MP</div></div></div>
+
+    <h3 class="grupo2">Se eliminan filas sin referencia (EXTERNAL_REFERENCE vacío)</h3>
+    <div class="criterio"><div class="dot"></div><div><div class="nombre">Transferencia bancaria interna</div><div class="desc">🏦 Transf. CTA MP Cotesma</div></div></div>
+    <div class="criterio"><div class="dot"></div><div><div class="nombre">Cualquier otro método de pago</div><div class="desc">⚠️ Anomalía - Controlar (requiere revisión)</div></div></div>
+
+    <h3 class="grupo2">Se elimina por monto negativo</h3>
+    <div class="criterio"><div class="dot"></div><div><div class="nombre">TRANSACTION_AMOUNT negativo</div><div class="desc">🔄 Reverso</div></div></div>
+  </div>
+
+  <p class="formatos-nota">
+    Detecta automáticamente 3 formatos de archivo: CSV oficial de Mercado Pago (comas),
+    CSV/XLSX alternativo (punto y coma o Excel) y CSV con la fila completa entre comillas.
+    En el archivo limpio, la columna TRANSACTION_TYPE siempre se normaliza a "SETTLEMENT".
+  </p>
+
+  <div class="aviso-error" id="avisoError">
+    <p id="mensajeError"></p>
   </div>
 
   <div class="resultados" id="resultados">
     <hr class="divider">
+    <span class="formato-badge" id="formatoBadge"></span>
 
     <div class="stats">
       <div class="stat tot"><div class="lbl">Total</div><div class="val" id="sTotal">0</div></div>
@@ -147,6 +201,18 @@
       <div class="monto-total">Monto total del archivo: <span id="montoTotal">0,00</span> ARS</div>
     </div>
 
+    <div class="seccion" id="seccionTipoTx">
+      <h3>Tipo de transacción (archivo limpio)</h3>
+      <div id="detalleTipoTx" style="font-size:13px; color:#c0c0e0;"></div>
+    </div>
+
+    <div id="seccionAnomalia"></div>
+
+    <div class="seccion" id="seccionMotivos" style="display:none">
+      <h3>Detalle de eliminados</h3>
+      <table class="tabla-motivos" id="tablaMotivos"></table>
+    </div>
+
     <div id="bloqueDescarga">
       <div class="btn-group">
         <button class="btn btn-purple" id="btnClean">⬇ Descargar CSV limpio</button>
@@ -162,66 +228,65 @@
 </div>
 
 <script>
-const CRITERIOS = [
-  c => c.startsWith(',88 '),
-  c => /^MP-Q/i.test(c),
-  c => /^Venta/i.test(c),
-  c => /^MELIPAYMENTS-COLLECTIONATTEMPT/i.test(c),
- c => /^INSTORE/i.test(c),
-  c => c.startsWith('20000')
-];
+/* ============================================================
+   Limpieza de Archivo MP — lógica de procesamiento
+   Reglas: ver README.md (Grupos 1, 2 y 3 + normalización TRANSACTION_TYPE)
+   ============================================================ */
+
+const QUOTE_COLS = ['EXTERNAL_REFERENCE', 'METADATA'];
 
 let csvClean = '', csvRemoved = '', origName = '';
+let huboEliminados = false;
 
-function primerCol(linea) {
-  const l = linea.trim();
-  if (l.startsWith('"')) { const f = l.indexOf('"', 1); return f === -1 ? l : l.substring(1, f); }
-  const idx = l.indexOf(',');
-  return idx === -1 ? l : l.substring(0, idx);
+// ---------- Utilidades numéricas ----------
+
+// Normaliza un monto de texto (que puede venir con coma decimal, con
+// separador de miles, etc.) a un string con punto decimal, sin separador
+// de miles. Se usa tanto para calcular el monto numérico como para escribir
+// el valor en los archivos de salida, que siempre usan coma como separador
+// de columnas: un monto con coma decimal sin normalizar rompería la
+// estructura del CSV si esa columna no va entre comillas.
+function normalizarMontoTexto(val) {
+  val = (val == null ? '' : String(val)).trim();
+  if (!val) return '';
+  if (val.includes('.') && val.includes(',')) {
+    return val.replace(/\./g, '').replace(',', '.');
+  }
+  if (val.includes(',') && !val.includes('.')) {
+    return val.replace(',', '.');
+  }
+  return val;
 }
 
-// Parser CSV robusto
-function splitLinea(linea) {
-  const l = linea.trim();
+function parseMonto(val) {
+  const normalized = normalizarMontoTexto(val);
+  if (!normalized) return 0;
+  const n = parseFloat(normalized);
+  return isNaN(n) ? 0 : n;
+}
 
-  // Caso archivo MP grande: toda la fila real está entre las primeras comillas
-  // Formato: "col1,col2,...,colN",,,,,  (comas vacías al final)
-  // Se detecta porque empieza con " y contiene '",,' o termina en ',"'
-  // Estrategia: encontrar el cierre de la comilla envolvente (primera " seguida de , o fin)
-  if (l.startsWith('"')) {
-    // Buscar el índice de cierre: primer " que esté seguido de , o sea el último char
-    let closeIdx = -1;
-    for (let k = 1; k < l.length; k++) {
-      if (l[k] === '"' && l[k-1] !== '"') {
-        // puede ser cierre si lo que sigue es , o fin de string
-        if (k + 1 >= l.length || l[k + 1] === ',') {
-          // verificar que no sea escape ""
-          if (l[k - 1] !== '"' || k < 2) { closeIdx = k; break; }
-        }
-      }
-    }
-    if (closeIdx > 0) {
-      // Extraer el contenido interno y hacer split
-      const inner = l.slice(1, closeIdx).replace(/""/g, '\x00');
-      const partes = inner.split(',').map(p => p.replace(/\x00/g, '"'));
-      if (partes.length > 3) return partes; // es fila completa MP
-    }
-  }
+function formatMonto(n) {
+  return n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
-  // Caso archivo chico: "col1",col2,col3,...
+// ---------- Parsing de texto delimitado (Formatos 1, 2 y 3) ----------
+
+// Split respetando comillas: dentro de un campo entre comillas, "" representa
+// una comilla literal. Sirve tanto para CSV con comillas (Formato 1/3) como
+// sin comillas (Formato 2, donde simplemente no aparecen comillas).
+function parseDelimited(linea, delimiter) {
   const partes = [];
   let i = 0, cur = '';
+  const l = linea;
   while (i < l.length) {
     if (l[i] === '"') {
       i++;
       while (i < l.length) {
-        if (l[i] === '"' && l[i+1] === '"') { cur += '"'; i += 2; }
+        if (l[i] === '"' && l[i + 1] === '"') { cur += '"'; i += 2; }
         else if (l[i] === '"') { i++; break; }
         else { cur += l[i++]; }
       }
-      partes.push(cur); cur = '';
-      if (l[i] === ',') i++;
-    } else if (l[i] === ',') {
+    } else if (l[i] === delimiter) {
       partes.push(cur); cur = ''; i++;
     } else {
       cur += l[i++];
@@ -231,85 +296,336 @@ function splitLinea(linea) {
   return partes;
 }
 
-function parseMonto(linea, idx) {
-  const partes = splitLinea(linea);
-  const val = (partes[idx] || '').trim();
-  if (!val) return 0;
-  let normalized;
-  if (val.includes('.') && val.includes(',')) {
-    normalized = val.replace(/\./g, '').replace(',', '.');
-  } else if (val.includes(',') && !val.includes('.')) {
-    normalized = val.replace(',', '.');
-  } else {
-    normalized = val;
+// Si el parseo estándar no da la cantidad de columnas esperada (por ejemplo,
+// METADATA con comillas internas mal escapadas o comas dentro del JSON),
+// se intenta aislar el bloque METADATA por patrón "[...]" antes de partir
+// el resto de la línea por el delimitador. Nunca se descarta una fila por
+// este motivo.
+function aislarMetadataYPartir(linea, delimiter) {
+  const m = linea.match(/"{0,2}(\[[\s\S]*\])"{0,2}/);
+  if (!m) return null;
+  const before = linea.slice(0, m.index);
+  const after = linea.slice(m.index + m[0].length);
+  let beforeParts = before.split(delimiter);
+  if (beforeParts.length && beforeParts[beforeParts.length - 1] === '') beforeParts.pop();
+  let afterParts = after.split(delimiter);
+  if (afterParts.length && afterParts[0] === '') afterParts.shift();
+  return [...beforeParts, m[1], ...afterParts];
+}
+
+// Formato 3: toda la fila viene envuelta en comillas dobles, con las comillas
+// internas duplicadas ("" en vez de "). OJO: una fila normal de Formato 1
+// también puede empezar y terminar con comillas (si EXTERNAL_REFERENCE es la
+// primera columna y METADATA la última, ambas entre comillas). Por eso el
+// Formato 3 nunca se asume por el aspecto de la línea: solo se prueba como
+// fallback cuando el parseo directo no da la cantidad de columnas esperada.
+function desenvolverFormato3(linea) {
+  const l = linea.trim();
+  return l.slice(1, -1).replace(/""/g, '"');
+}
+
+function pareceEnvuelta(linea) {
+  const l = linea.trim();
+  return l.length > 1 && l.startsWith('"') && l.endsWith('"');
+}
+
+// Intenta parsear una línea de datos probando, en orden: el delimitador
+// principal del archivo tal cual; si la fila viene con el patrón de Formato 3
+// (línea completa entre comillas), desenvolverla y reintentar; y por último
+// aislar METADATA por patrón. Se usa el primer resultado cuyo número de
+// columnas coincida con el esperado; si ninguno coincide, se devuelve el
+// intento directo (mejor esfuerzo, para no perder la fila).
+function parseLineaInteligente(linea, delimiter, expectedCols) {
+  const directo = parseDelimited(linea, delimiter);
+  if (directo.length === expectedCols) return directo;
+
+  if (pareceEnvuelta(linea)) {
+    const desenvuelta = desenvolverFormato3(linea);
+    const intento3 = parseDelimited(desenvuelta, delimiter);
+    if (intento3.length === expectedCols) return intento3;
+    const conMetadata3 = aislarMetadataYPartir(desenvuelta, delimiter);
+    if (conMetadata3 && conMetadata3.length === expectedCols) return conMetadata3;
   }
-  const n = parseFloat(normalized);
-  return isNaN(n) ? 0 : n;
+
+  const conMetadata = aislarMetadataYPartir(linea, delimiter);
+  if (conMetadata && conMetadata.length === expectedCols) return conMetadata;
+
+  return directo;
 }
 
-function formatMonto(n) {
-  return n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+// Detecta el formato/delimitador a partir de la fila de encabezados,
+// probando resultados reales de parseo en vez de adivinar por el aspecto de
+// la línea. Si nada calza con certeza, se asume Formato 1 por defecto.
+function detectarFormatoYDelimiter(lineaHeader) {
+  const comoComa = parseDelimited(lineaHeader, ',');
+  if (comoComa.length > 1) {
+    return { delimiter: ',', formatoLabel: 'Formato 1 — CSV oficial', headerFields: comoComa.map(h => h.trim()) };
+  }
 
-function procesar(texto) {
-  const clean = texto.replace(/^\uFEFF/, ''); // eliminar BOM
-  const lineas = clean.split(/\r?\n/);
-  if (lineas.length < 2) { alert('El archivo parece estar vacío.'); return; }
-
-  const enc = lineas[0];
-  const cols = splitLinea(enc).map(c => c.trim().toUpperCase());
-  const idxAmount = cols.indexOf('TRANSACTION_AMOUNT');
-
-
-
-  const limpias = [], eliminadas = [];
-  let montoClean = 0, montoRemoved = 0;
-
-  for (let i = 1; i < lineas.length; i++) {
-    const l = lineas[i];
-    if (!l.trim()) continue;
-    if (CRITERIOS.some(fn => fn(primerCol(l)))) {
-      eliminadas.push(l);
-      if (idxAmount >= 0) montoRemoved += parseMonto(l, idxAmount);
-    } else {
-      limpias.push(l);
-      if (idxAmount >= 0) montoClean += parseMonto(l, idxAmount);
+  if (pareceEnvuelta(lineaHeader)) {
+    const desenvuelta = desenvolverFormato3(lineaHeader);
+    const comoComaDesenvuelta = parseDelimited(desenvuelta, ',');
+    if (comoComaDesenvuelta.length > 1) {
+      return { delimiter: ',', formatoLabel: 'Formato 3 — CSV con fila entre comillas', headerFields: comoComaDesenvuelta.map(h => h.trim()) };
     }
   }
 
-  csvClean   = [enc, ...limpias].join('\n');
-  csvRemoved = [enc, ...eliminadas].join('\n');
+  const comoPyc = parseDelimited(lineaHeader, ';');
+  if (comoPyc.length > 1) {
+    return { delimiter: ';', formatoLabel: 'Formato 2 — CSV/XLSX alternativo (punto y coma)', headerFields: comoPyc.map(h => h.trim()) };
+  }
 
-  document.getElementById('sTotal').textContent   = limpias.length + eliminadas.length;
-  document.getElementById('sClean').textContent   = limpias.length;
-  document.getElementById('sRemoved').textContent = eliminadas.length;
+  // Por defecto, Formato 1 (aunque el resultado tenga una sola columna).
+  return { delimiter: ',', formatoLabel: 'Formato 1 — CSV oficial', headerFields: comoComa.map(h => h.trim()) };
+}
 
-  const sinEliminadas = eliminadas.length === 0;
-  document.getElementById('stats2').style.display          = sinEliminadas ? 'none' : 'grid';
-  document.getElementById('bloqueDescarga').style.display   = sinEliminadas ? 'none' : 'block';
-  document.getElementById('avisoLimpio').style.display      = sinEliminadas ? 'block' : 'none';
+function procesarTexto(texto) {
+  const clean = texto.replace(/^﻿/, '');
+  const lineas = clean.split(/\r?\n/).filter(l => l.trim() !== '');
+  if (lineas.length < 2) {
+    mostrarError('El archivo parece estar vacío o no tiene filas de datos.');
+    return;
+  }
 
-  if (sinEliminadas) {
-    document.getElementById('montoTotal').textContent = formatMonto(montoClean);
-  } else {
-    document.getElementById('sAmountClean').textContent   = formatMonto(montoClean);
-    document.getElementById('sAmountRemoved').textContent = formatMonto(montoRemoved);
+  const { delimiter, formatoLabel, headerFields } = detectarFormatoYDelimiter(lineas[0]);
+  const expectedCols = headerFields.length;
+
+  // Cada fila de datos se intenta parsear de forma independiente: el
+  // Formato 3 puede aparecer sin aviso previo mezclado con otras filas.
+  const dataRows = lineas.slice(1).map(l => parseLineaInteligente(l, delimiter, expectedCols));
+
+  procesarFilas(headerFields, dataRows, formatoLabel);
+}
+
+// ---------- Lectura de XLSX (Formato 2 en su variante binaria) ----------
+
+function procesarXlsx(arrayBuffer) {
+  if (typeof XLSX === 'undefined') {
+    mostrarError('No se pudo cargar el lector de Excel. Revisá tu conexión a internet e intentá de nuevo.');
+    return;
+  }
+  const data = new Uint8Array(arrayBuffer);
+  const wb = XLSX.read(data, { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const filas = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' })
+    .filter(r => r.some(v => String(v).trim() !== ''));
+  if (filas.length < 2) {
+    mostrarError('El archivo parece estar vacío o no tiene filas de datos.');
+    return;
+  }
+  const headerFields = filas[0].map(h => String(h).trim());
+  const dataRows = filas.slice(1).map(r => r.map(v => String(v)));
+  procesarFilas(headerFields, dataRows, 'Formato 2 — CSV/XLSX alternativo (Excel)');
+}
+
+// ---------- Lógica de limpieza (Grupos 1, 2 y 3) ----------
+
+function clasificarFila(fields, idx) {
+  const ref = (fields[idx.extRef] || '').trim();
+  const second = (fields[idx.extRef + 1] || '').trim();
+
+  // Grupo 1 — prefijo de EXTERNAL_REFERENCE
+  if (/^VENTA/i.test(ref)) return { label: 'Venta presencial (POS)' };
+  if (/^INSTORE/i.test(ref)) return { label: 'INSTORE (QR/local)' };
+  if (/^MP-Q/i.test(ref)) return { label: 'Registro MP-Q' };
+  if (/^MELIPAYMENTS-COLLECTIONATTEMPT/i.test(ref)) return { label: 'Intento de cobro MP' };
+  if (ref === '' && /^88\s/.test(second)) return { label: 'Registro inválido (,88)' };
+  if (/^20000/.test(ref)) return { label: '🛒 Compras COTESMA Saldo de MP' };
+
+  // Grupo 2 — EXTERNAL_REFERENCE vacío o nulo
+  if (ref === '') {
+    const pmType = (fields[idx.payType] || '').trim().toLowerCase();
+    const pm = (fields[idx.payMethod] || '').trim().toLowerCase();
+    if (pmType === 'bank_transfer' && pm === 'interop_transfer') {
+      return { label: '🏦 Transf. CTA MP Cotesma' };
+    }
+    return { label: '⚠️ Anomalía - Controlar', anomalia: true };
+  }
+
+  // Grupo 3 — TRANSACTION_AMOUNT negativo (Reverso)
+  const monto = idx.amount >= 0 ? parseMonto(fields[idx.amount]) : 0;
+  if (monto < 0) return { label: '🔄 Reverso' };
+
+  return null; // fila limpia
+}
+
+function procesarFilas(headers, dataRowsRaw, formatoLabel) {
+  const nCols = headers.length;
+  const headersUp = headers.map(h => h.toUpperCase());
+
+  const idx = {
+    extRef: headersUp.indexOf('EXTERNAL_REFERENCE'),
+    amount: headersUp.indexOf('TRANSACTION_AMOUNT'),
+    payType: headersUp.indexOf('PAYMENT_METHOD_TYPE'),
+    payMethod: headersUp.indexOf('PAYMENT_METHOD'),
+    txType: headersUp.indexOf('TRANSACTION_TYPE'),
+  };
+  if (idx.extRef === -1) idx.extRef = 0; // por defecto, primer campo
+
+  const dataRows = dataRowsRaw
+    .map(r => {
+      const arr = r.slice(0, nCols).map(v => (v == null ? '' : String(v)));
+      while (arr.length < nCols) arr.push('');
+      return arr;
+    })
+    .filter(r => r.some(v => v.trim() !== ''));
+
+  const limpias = [];
+  const eliminadas = []; // { fields, motivo }
+  const motivos = {};    // label -> { count, monto }
+  const txTypeOriginales = {}; // valor original -> count (solo filas limpias)
+
+  let montoClean = 0, montoRemoved = 0;
+
+  for (const fields of dataRows) {
+    const clasif = clasificarFila(fields, idx);
+    const monto = idx.amount >= 0 ? parseMonto(fields[idx.amount]) : 0;
+
+    // El archivo de salida siempre usa coma como separador de columnas y
+    // TRANSACTION_AMOUNT nunca va entre comillas, así que su valor se
+    // normaliza a punto decimal (sin separador de miles) para no romper
+    // la estructura del CSV cuando el origen usaba coma decimal.
+    if (idx.amount >= 0) {
+      fields[idx.amount] = normalizarMontoTexto(fields[idx.amount]);
+    }
+
+    if (clasif) {
+      eliminadas.push({ fields, motivo: clasif.label });
+      montoRemoved += monto;
+      motivos[clasif.label] = motivos[clasif.label] || { count: 0, monto: 0, anomalia: !!clasif.anomalia };
+      motivos[clasif.label].count++;
+      motivos[clasif.label].monto += monto;
+    } else {
+      if (idx.txType >= 0) {
+        const original = (fields[idx.txType] || '').trim();
+        if (original.toUpperCase() !== 'SETTLEMENT') {
+          const key = original || '(vacío)';
+          txTypeOriginales[key] = (txTypeOriginales[key] || 0) + 1;
+        }
+        fields[idx.txType] = 'SETTLEMENT';
+      }
+      limpias.push(fields);
+      montoClean += monto;
+    }
+  }
+
+  renderResultados({
+    headers, limpias, eliminadas, motivos, txTypeOriginales,
+    montoClean, montoRemoved, formatoLabel
+  });
+}
+
+// ---------- Serialización de archivos de salida ----------
+// Estructura idéntica al CSV oficial de Mercado Pago: separador coma,
+// y solo EXTERNAL_REFERENCE y METADATA entre comillas dobles.
+
+function serializarFila(fields, headers) {
+  return fields.map((v, i) => {
+    const h = (headers[i] || '').toUpperCase();
+    const val = v == null ? '' : String(v);
+    if (QUOTE_COLS.includes(h)) return '"' + val.replace(/"/g, '""') + '"';
+    return val;
+  }).join(',');
+}
+
+function construirCsvLimpio(headers, limpias) {
+  const lineas = limpias.map(f => serializarFila(f, headers));
+  return [headers.join(','), ...lineas].join('\n');
+}
+
+function construirCsvEliminado(headers, eliminadas) {
+  const headerLine = [...headers, 'MOTIVO_ELIMINACION'].join(',');
+  const lineas = eliminadas.map(e => serializarFila(e.fields, headers) + ',' + e.motivo);
+  return [headerLine, ...lineas].join('\n');
+}
+
+// ---------- Render de resultados ----------
+
+function renderResultados(r) {
+  document.getElementById('avisoError').style.display = 'none';
+
+  csvClean = construirCsvLimpio(r.headers, r.limpias);
+  huboEliminados = r.eliminadas.length > 0;
+  csvRemoved = huboEliminados ? construirCsvEliminado(r.headers, r.eliminadas) : '';
+
+  document.getElementById('formatoBadge').textContent = r.formatoLabel;
+
+  const total = r.limpias.length + r.eliminadas.length;
+  document.getElementById('sTotal').textContent = total;
+  document.getElementById('sClean').textContent = r.limpias.length;
+  document.getElementById('sRemoved').textContent = r.eliminadas.length;
+
+  document.getElementById('stats2').style.display = huboEliminados ? 'grid' : 'none';
+  document.getElementById('bloqueDescarga').style.display = huboEliminados ? 'block' : 'none';
+  document.getElementById('avisoLimpio').style.display = huboEliminados ? 'none' : 'block';
+  document.getElementById('seccionMotivos').style.display = huboEliminados ? 'block' : 'none';
+
+  if (huboEliminados) {
+    document.getElementById('sAmountClean').textContent = formatMonto(r.montoClean);
+    document.getElementById('sAmountRemoved').textContent = formatMonto(r.montoRemoved);
     document.getElementById('msgNombres').textContent =
-      origName + '_Limpio.csv   ·   ' + origName + '_Eliminados.csv';
+      origName + '_limpio.csv   ·   ' + origName + '_eliminado.csv';
+  } else {
+    document.getElementById('montoTotal').textContent = formatMonto(r.montoClean);
+  }
+
+  // Tipo de transacción (normalización a SETTLEMENT)
+  const detalleTx = document.getElementById('detalleTipoTx');
+  const claves = Object.keys(r.txTypeOriginales);
+  if (claves.length === 0) {
+    detalleTx.textContent = 'Conteo de todas las filas SETTLEMENT - OK';
+  } else {
+    detalleTx.innerHTML = claves
+      .map(k => `${r.txTypeOriginales[k]} - ${k} (normalizado a SETTLEMENT en el archivo limpio)`)
+      .join('<br>');
+  }
+
+  // Aviso de anomalía (requiere revisión manual)
+  const seccionAnomalia = document.getElementById('seccionAnomalia');
+  const anomaliaInfo = r.motivos['⚠️ Anomalía - Controlar'];
+  if (anomaliaInfo) {
+    seccionAnomalia.innerHTML =
+      `<div class="aviso-anomalia">⚠️ Se encontraron ${anomaliaInfo.count} registro(s) sin referencia y con un método de pago no identificado (Anomalía - Controlar). Quedaron en el archivo de eliminados para revisión manual.</div>`;
+  } else {
+    seccionAnomalia.innerHTML = '';
+  }
+
+  // Detalle de eliminados por motivo
+  const tabla = document.getElementById('tablaMotivos');
+  if (huboEliminados) {
+    const filasHtml = Object.keys(r.motivos).map(label => {
+      const m = r.motivos[label];
+      const claseFila = m.anomalia ? 'anomalia' : '';
+      return `<tr class="${claseFila}"><td>${label}</td><td class="num">${m.count} reg.</td><td class="num">$ ${formatMonto(m.monto)}</td></tr>`;
+    }).join('');
+    tabla.innerHTML = filasHtml +
+      `<tr class="total"><td>Total eliminado</td><td></td><td class="num">$ ${formatMonto(r.montoRemoved)}</td></tr>`;
+  } else {
+    tabla.innerHTML = '';
   }
 
   document.getElementById('resultados').style.display = 'block';
 }
 
+function mostrarError(msg) {
+  document.getElementById('resultados').style.display = 'none';
+  document.getElementById('avisoError').style.display = 'block';
+  document.getElementById('mensajeError').textContent = msg;
+}
+
+// ---------- Descarga de archivos ----------
+
 function descargar(contenido, nombre) {
   const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
   a.href = url; a.download = nombre; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-const dropZone  = document.getElementById('dropZone');
+// ---------- Carga de archivo (drag & drop / selector) ----------
+
+const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
 
 dropZone.addEventListener('click', () => fileInput.click());
@@ -319,25 +635,53 @@ dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.
 fileInput.addEventListener('change', e => cargar(e.target.files[0]));
 
 function cargar(file) {
-  if (!file || !file.name.toLowerCase().endsWith('.csv')) { alert('Por favor seleccioná un archivo .csv'); return; }
-  origName = file.name.replace(/\.csv$/i, '');
-  // Mostrar nombre del archivo en la zona de carga
+  if (!file) return;
+  const nombre = file.name.toLowerCase();
+  const esXlsx = nombre.endsWith('.xlsx') || nombre.endsWith('.xls');
+  const esTexto = nombre.endsWith('.csv') || nombre.endsWith('.txt');
+
+  if (!esXlsx && !esTexto) {
+    mostrarError('No pudimos reconocer este tipo de archivo. Subí un archivo .csv o .xlsx exportado de Mercado Pago.');
+    return;
+  }
+
+  origName = file.name.replace(/\.(csv|txt|xlsx|xls)$/i, '');
   document.getElementById('drop-icon').textContent = '📄';
   document.getElementById('drop-text').innerHTML = `<strong>${file.name}</strong>`;
   document.getElementById('drop-sub').textContent = `${(file.size / 1024).toFixed(1)} KB — procesando...`;
-  const reader = new FileReader();
-  reader.onload = e => procesar(e.target.result);
-  reader.readAsText(file, 'UTF-8');
+
+  try {
+    const reader = new FileReader();
+    reader.onerror = () => mostrarError('No pudimos leer el archivo. Probá subirlo de nuevo.');
+    if (esXlsx) {
+      reader.onload = e => {
+        try { procesarXlsx(e.target.result); }
+        catch (err) { mostrarError('El archivo no pudo procesarse. Verificá que sea un Excel exportado correctamente.'); }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.onload = e => {
+        try { procesarTexto(e.target.result); }
+        catch (err) { mostrarError('El archivo no coincide con ninguno de los formatos soportados. Revisalo y volvé a intentar.'); }
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
+  } catch (err) {
+    mostrarError('Ocurrió un problema al leer el archivo. Probá de nuevo.');
+  }
 }
 
-document.getElementById('btnClean').addEventListener('click',   () => descargar(csvClean,   origName + '_Limpio.csv'));
-document.getElementById('btnRemoved').addEventListener('click', () => descargar(csvRemoved, origName + '_Eliminados.csv'));
+document.getElementById('btnClean').addEventListener('click', () => descargar(csvClean, origName + '_limpio.csv'));
+document.getElementById('btnRemoved').addEventListener('click', () => {
+  if (huboEliminados) descargar(csvRemoved, origName + '_eliminado.csv');
+});
 document.getElementById('btnReset').addEventListener('click', () => {
   document.getElementById('resultados').style.display = 'none';
+  document.getElementById('avisoError').style.display = 'none';
   document.getElementById('drop-icon').textContent = '📂';
   document.getElementById('drop-text').innerHTML = `Arrastrá el archivo acá o <strong>hacé clic para seleccionar</strong>`;
-  document.getElementById('drop-sub').textContent = 'Solo archivos .csv';
-  fileInput.value = ''; csvClean = ''; csvRemoved = ''; origName = '';
+  document.getElementById('drop-sub').textContent = 'Archivos .csv o .xlsx';
+  fileInput.value = ''; csvClean = ''; csvRemoved = ''; origName = ''; huboEliminados = false;
 });
 </script>
 </body>
