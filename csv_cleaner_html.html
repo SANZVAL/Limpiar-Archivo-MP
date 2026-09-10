@@ -231,6 +231,9 @@
 /* ============================================================
    Limpieza de Archivo MP — lógica de procesamiento
    Reglas: ver README.md (Grupos 1, 2 y 3 + normalización TRANSACTION_TYPE)
+   Sincronizado con las reglas validadas en el agente de Claude (10/09/2026):
+   salida en CRLF y montos siempre con 2 decimales, igual que el CSV
+   oficial de Mercado Pago.
    ============================================================ */
 
 const QUOTE_COLS = ['EXTERNAL_REFERENCE', 'METADATA'];
@@ -249,13 +252,17 @@ let huboEliminados = false;
 function normalizarMontoTexto(val) {
   val = (val == null ? '' : String(val)).trim();
   if (!val) return '';
-  if (val.includes('.') && val.includes(',')) {
-    return val.replace(/\./g, '').replace(',', '.');
+  let normalized = val;
+  if (normalized.includes('.') && normalized.includes(',')) {
+    normalized = normalized.replace(/\./g, '').replace(',', '.');
+  } else if (normalized.includes(',') && !normalized.includes('.')) {
+    normalized = normalized.replace(',', '.');
   }
-  if (val.includes(',') && !val.includes('.')) {
-    return val.replace(',', '.');
-  }
-  return val;
+  // El archivo oficial de Mercado Pago siempre trae los montos con 2
+  // decimales exactos; se fuerza el mismo formato en la salida.
+  const n = parseFloat(normalized);
+  if (isNaN(n)) return normalized;
+  return n.toFixed(2);
 }
 
 function parseMonto(val) {
@@ -530,13 +537,14 @@ function serializarFila(fields, headers) {
 
 function construirCsvLimpio(headers, limpias) {
   const lineas = limpias.map(f => serializarFila(f, headers));
-  return [headers.join(','), ...lineas].join('\n');
+  // CRLF para igualar el salto de línea del CSV oficial de Mercado Pago.
+  return [headers.join(','), ...lineas].join('\r\n');
 }
 
 function construirCsvEliminado(headers, eliminadas) {
   const headerLine = [...headers, 'MOTIVO_ELIMINACION'].join(',');
   const lineas = eliminadas.map(e => serializarFila(e.fields, headers) + ',' + e.motivo);
-  return [headerLine, ...lineas].join('\n');
+  return [headerLine, ...lineas].join('\r\n');
 }
 
 // ---------- Render de resultados ----------
