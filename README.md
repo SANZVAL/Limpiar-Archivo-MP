@@ -58,13 +58,13 @@ La detección es automática y no requiere que el usuario indique el formato. Lo
 | Comienza con `MP-Q` | Registro MP-Q |
 | Comienza con `MELIPAYMENTS-COLLECTIONATTEMPT` | Intento de cobro MP |
 | Referencia vacía seguida de un campo que empieza con `88 ` | Registro inválido (,88) |
-| Comienza con `20000` | 🛒 Compras COTESMA Saldo de MP |
+| Comienza con `20000` | 🛒 Compras con Saldo de MP |
 
 ### Grupo 2 — EXTERNAL_REFERENCE vacío o nulo
 
 | Condición | Motivo |
 |---|---|
-| Vacío + `PAYMENT_METHOD_TYPE=bank_transfer` + `PAYMENT_METHOD=interop_transfer` | 🏦 Transf. CTA MP Cotesma |
+| Vacío + `PAYMENT_METHOD_TYPE=bank_transfer` + `PAYMENT_METHOD=interop_transfer` | 🏦 Transf. CTA MP Empresa |
 | Vacío + cualquier otro método de pago | ⚠️ Anomalía - Controlar (requiere revisión manual) |
 
 ### Grupo 3 — TRANSACTION_AMOUNT negativo
