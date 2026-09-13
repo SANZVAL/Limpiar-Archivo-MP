@@ -160,10 +160,10 @@
     <div class="criterio"><div class="dot"></div><div><div class="nombre">MP-Q</div><div class="desc">Registro MP-Q</div></div></div>
     <div class="criterio"><div class="dot"></div><div><div class="nombre">MELIPAYMENTS-COLLECTIONATTEMPT</div><div class="desc">Intento de cobro MP</div></div></div>
     <div class="criterio"><div class="dot"></div><div><div class="nombre">,88 / ;88</div><div class="desc">Registro inválido</div></div></div>
-    <div class="criterio"><div class="dot"></div><div><div class="nombre">20000</div><div class="desc">🛒 Compras COTESMA Saldo de MP</div></div></div>
+    <div class="criterio"><div class="dot"></div><div><div class="nombre">20000</div><div class="desc">🛒 Compras Saldo de MP</div></div></div>
 
     <h3 class="grupo2">Se eliminan filas sin referencia (EXTERNAL_REFERENCE vacío)</h3>
-    <div class="criterio"><div class="dot"></div><div><div class="nombre">Transferencia bancaria interna</div><div class="desc">🏦 Transf. CTA MP Cotesma</div></div></div>
+    <div class="criterio"><div class="dot"></div><div><div class="nombre">Transferencia bancaria interna</div><div class="desc">🏦 Transf. CTA MP Empresa</div></div></div>
     <div class="criterio"><div class="dot"></div><div><div class="nombre">Cualquier otro método de pago</div><div class="desc">⚠️ Anomalía - Controlar (requiere revisión)</div></div></div>
 
     <h3 class="grupo2">Se elimina por monto negativo</h3>
@@ -437,14 +437,14 @@ function clasificarFila(fields, idx) {
   if (/^MP-Q/i.test(ref)) return { label: 'Registro MP-Q' };
   if (/^MELIPAYMENTS-COLLECTIONATTEMPT/i.test(ref)) return { label: 'Intento de cobro MP' };
   if (ref === '' && /^88\s/.test(second)) return { label: 'Registro inválido (,88)' };
-  if (/^20000/.test(ref)) return { label: '🛒 Compras COTESMA Saldo de MP' };
+  if (/^20000/.test(ref)) return { label: '🛒 Compras con Saldo de MP' };
 
   // Grupo 2 — EXTERNAL_REFERENCE vacío o nulo
   if (ref === '') {
     const pmType = (fields[idx.payType] || '').trim().toLowerCase();
     const pm = (fields[idx.payMethod] || '').trim().toLowerCase();
     if (pmType === 'bank_transfer' && pm === 'interop_transfer') {
-      return { label: '🏦 Transf. CTA MP Cotesma' };
+      return { label: '🏦 Transf. CTA MP Empresa' };
     }
     return { label: '⚠️ Anomalía - Controlar', anomalia: true };
   }
