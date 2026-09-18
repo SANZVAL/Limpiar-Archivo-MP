@@ -65,6 +65,21 @@
 
   .formatos-nota { font-size: 11px; color: #50507a; margin-bottom: 1.5rem; line-height: 1.5; }
 
+  /* Layout: una sola columna hasta que hay resultados; ahí pasa a 2
+     columnas (izquierda = carga + criterios, derecha = resultados),
+     dentro del mismo ancho de tarjeta. En pantallas angostas vuelve a
+     apilarse en 1 columna aunque haya resultados. */
+  .layout { display: block; }
+  .layout.dos-columnas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.75rem;
+    align-items: start;
+  }
+  @media (max-width: 680px) {
+    .layout.dos-columnas { display: block; }
+  }
+
   .resultados { display: none; }
   .divider { border: none; border-top: 1px solid #2a2a45; margin: 1.5rem 0; }
 
@@ -147,6 +162,8 @@
   </div>
   <p class="sub">Subí tu archivo — se limpia automáticamente y descargás los resultados.</p>
 
+  <div class="layout" id="layout">
+  <div class="col-izq">
   <div class="drop-zone" id="dropZone">
     <div class="drop-icon" id="drop-icon">📂</div>
     <p id="drop-text">Arrastrá el archivo acá o <strong>hacé clic para seleccionar</strong></p>
@@ -180,7 +197,9 @@
   <div class="aviso-error" id="avisoError">
     <p id="mensajeError"></p>
   </div>
+  </div>
 
+  <div class="col-der">
   <div class="resultados" id="resultados">
     <hr class="divider">
     <span class="formato-badge" id="formatoBadge"></span>
@@ -226,6 +245,8 @@
     <div class="btn-group" style="margin-top:10px">
       <button class="btn btn-ghost" id="btnReset">↺ Procesar otro archivo</button>
     </div>
+  </div>
+  </div>
   </div>
 </div>
 
@@ -625,12 +646,14 @@ function renderResultados(r) {
   }
 
   document.getElementById('resultados').style.display = 'block';
+  document.getElementById('layout').classList.add('dos-columnas');
 }
 
 function mostrarError(msg) {
   document.getElementById('resultados').style.display = 'none';
   document.getElementById('avisoError').style.display = 'block';
   document.getElementById('mensajeError').textContent = msg;
+  document.getElementById('layout').classList.remove('dos-columnas');
 }
 
 // ---------- Descarga de archivos ----------
@@ -681,10 +704,20 @@ function cargar(file) {
       reader.readAsArrayBuffer(file);
     } else {
       reader.onload = e => {
-        try { procesarTexto(e.target.result); }
+        try {
+          // Se lee como bytes crudos (no readAsText) y se decodifica a mano
+          // con { ignoreBOM: true }: por spec, un decoder UTF-8 normal
+          // (o reader.readAsText) quita el BOM en silencio antes de que nuestro
+          // código lo vea, y entonces nunca podríamos detectarlo para avisar
+          // en el resumen. Con ignoreBOM:true el BOM queda en el texto y lo
+          // detectamos/quitamos nosotros mismos en procesarTexto().
+          const decoder = new TextDecoder('utf-8', { ignoreBOM: true });
+          const texto = decoder.decode(e.target.result);
+          procesarTexto(texto);
+        }
         catch (err) { mostrarError('El archivo no coincide con ninguno de los formatos soportados. Revisalo y volvé a intentar.'); }
       };
-      reader.readAsText(file, 'UTF-8');
+      reader.readAsArrayBuffer(file);
     }
   } catch (err) {
     mostrarError('Ocurrió un problema al leer el archivo. Probá de nuevo.');
@@ -698,6 +731,7 @@ document.getElementById('btnRemoved').addEventListener('click', () => {
 document.getElementById('btnReset').addEventListener('click', () => {
   document.getElementById('resultados').style.display = 'none';
   document.getElementById('avisoError').style.display = 'none';
+  document.getElementById('layout').classList.remove('dos-columnas');
   document.getElementById('drop-icon').textContent = '📂';
   document.getElementById('drop-text').innerHTML = `Arrastrá el archivo acá o <strong>hacé clic para seleccionar</strong>`;
   document.getElementById('drop-sub').textContent = 'Archivos .csv o .xlsx';
