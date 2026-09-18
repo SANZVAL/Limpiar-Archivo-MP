@@ -84,6 +84,7 @@ En el archivo `_limpio.csv`, la columna `TRANSACTION_TYPE` siempre queda como `S
 - `_limpio.csv`: no agrega columnas nuevas.
 - `_eliminado.csv`: agrega la columna `MOTIVO_ELIMINACION` al final, con el motivo correspondiente de las tablas arriba.
 - Si no se elimina ningún registro, no se genera `_eliminado.csv`.
+- Ninguno de los dos archivos de salida lleva BOM al inicio, tenga o no el archivo original.
 
 ---
 
@@ -95,6 +96,7 @@ El parser maneja:
 - Filas sin comillas, separadas por `;` (Formato 2)
 - Filas completas entre comillas con comillas internas escapadas (`""`) (Formato 3)
 - Como respaldo, si el número de columnas no coincide con el esperado (por ejemplo, un `METADATA` con comillas internas mal escapadas), se intenta aislar el bloque `[...]` de `METADATA` antes de partir el resto de la fila. Ninguna fila se descarta por este motivo.
+- Detección de BOM (marca de codificación UTF-8) al inicio del archivo original: si está presente, se quita antes de parsear el encabezado y las filas, y se muestra un aviso en el resumen ("ℹ️ Se detectó y quitó un BOM al inicio del archivo original").
 
 ---
 
@@ -113,6 +115,7 @@ El parser maneja:
 - Resumen con desglose por motivo de eliminación
 - Aviso destacado cuando hay registros "Anomalía - Controlar"
 - Descarga directa de resultados
+- Al procesar un archivo, la vista pasa a dos columnas (carga y criterios a la izquierda, resultados y descargas a la derecha); en pantallas angostas vuelve a apilarse en una sola columna.
 
 ---
 
