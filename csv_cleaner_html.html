@@ -597,7 +597,13 @@ function renderResultados(r) {
   document.getElementById('sRemoved').textContent = r.eliminadas.length;
 
   document.getElementById('stats2').style.display = huboEliminados ? 'grid' : 'none';
-  document.getElementById('bloqueDescarga').style.display = huboEliminados ? 'block' : 'none';
+  // El botón de descarga del archivo limpio debe estar SIEMPRE disponible:
+  // el _limpio.csv puede diferir del original aunque no se haya eliminado
+  // ninguna fila (por ejemplo, por la quita de BOM o la normalización de
+  // TRANSACTION_TYPE). Solo el botón de "eliminadas" depende de si hubo
+  // registros eliminados, y por eso es el único que se oculta.
+  document.getElementById('bloqueDescarga').style.display = 'block';
+  document.getElementById('btnRemoved').style.display = huboEliminados ? 'inline-flex' : 'none';
   document.getElementById('avisoLimpio').style.display = huboEliminados ? 'none' : 'block';
   document.getElementById('seccionMotivos').style.display = huboEliminados ? 'block' : 'none';
 
@@ -608,6 +614,7 @@ function renderResultados(r) {
       origName + '_limpio.csv   ·   ' + origName + '_eliminado.csv';
   } else {
     document.getElementById('montoTotal').textContent = formatMonto(r.montoClean);
+    document.getElementById('msgNombres').textContent = origName + '_limpio.csv';
   }
 
   // Tipo de transacción (normalización a SETTLEMENT)
