@@ -69,6 +69,7 @@
   .divider { border: none; border-top: 1px solid #2a2a45; margin: 1.5rem 0; }
 
   .formato-badge { display:inline-block; font-size:11px; color:#AFA9EC; background:#1a1a35; border:1px solid #2a2a45; border-radius:8px; padding:4px 10px; margin-bottom: 1rem; }
+  .bom-aviso { display:none; font-size: 11px; color: #7070a0; margin: -0.5rem 0 1rem 0; }
 
   .stats  { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
   .stats2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 1.5rem; }
@@ -160,7 +161,7 @@
     <div class="criterio"><div class="dot"></div><div><div class="nombre">MP-Q</div><div class="desc">Registro MP-Q</div></div></div>
     <div class="criterio"><div class="dot"></div><div><div class="nombre">MELIPAYMENTS-COLLECTIONATTEMPT</div><div class="desc">Intento de cobro MP</div></div></div>
     <div class="criterio"><div class="dot"></div><div><div class="nombre">,88 / ;88</div><div class="desc">Registro inválido</div></div></div>
-    <div class="criterio"><div class="dot"></div><div><div class="nombre">20000</div><div class="desc">🛒 Compras Saldo de MP</div></div></div>
+    <div class="criterio"><div class="dot"></div><div><div class="nombre">20000</div><div class="desc">🛒 Compras con Saldo de MP</div></div></div>
 
     <h3 class="grupo2">Se eliminan filas sin referencia (EXTERNAL_REFERENCE vacío)</h3>
     <div class="criterio"><div class="dot"></div><div><div class="nombre">Transferencia bancaria interna</div><div class="desc">🏦 Transf. CTA MP Empresa</div></div></div>
@@ -183,6 +184,7 @@
   <div class="resultados" id="resultados">
     <hr class="divider">
     <span class="formato-badge" id="formatoBadge"></span>
+    <div class="bom-aviso" id="bomAviso">ℹ️ Se detectó y quitó un BOM al inicio del archivo original</div>
 
     <div class="stats">
       <div class="stat tot"><div class="lbl">Total</div><div class="val" id="sTotal">0</div></div>
@@ -231,9 +233,10 @@
 /* ============================================================
    Limpieza de Archivo MP — lógica de procesamiento
    Reglas: ver README.md (Grupos 1, 2 y 3 + normalización TRANSACTION_TYPE)
-   Sincronizado con las reglas validadas en el agente de Claude (10/09/2026):
+   Sincronizado con las reglas validadas en el agente de Claude (18/09/2026):
    salida en CRLF y montos siempre con 2 decimales, igual que el CSV
-   oficial de Mercado Pago.
+   oficial de Mercado Pago. Se agrega detección y aviso de BOM al inicio
+   del archivo original.
    ============================================================ */
 
 const QUOTE_COLS = ['EXTERNAL_REFERENCE', 'METADATA'];
@@ -387,6 +390,10 @@ function detectarFormatoYDelimiter(lineaHeader) {
 }
 
 function procesarTexto(texto) {
+  // Detección de BOM (marca de codificación UTF-8, U+FEFF / bytes EF BB BF)
+  // al inicio del archivo original, antes de quitarlo. Se informa en el
+  // resumen; los archivos de salida nunca llevan BOM, tenga o no el original.
+  const bomDetectado = texto.length > 0 && texto.charCodeAt(0) === 0xFEFF;
   const clean = texto.replace(/^﻿/, '');
   const lineas = clean.split(/\r?\n/).filter(l => l.trim() !== '');
   if (lineas.length < 2) {
@@ -401,7 +408,7 @@ function procesarTexto(texto) {
   // Formato 3 puede aparecer sin aviso previo mezclado con otras filas.
   const dataRows = lineas.slice(1).map(l => parseLineaInteligente(l, delimiter, expectedCols));
 
-  procesarFilas(headerFields, dataRows, formatoLabel);
+  procesarFilas(headerFields, dataRows, formatoLabel, bomDetectado);
 }
 
 // ---------- Lectura de XLSX (Formato 2 en su variante binaria) ----------
@@ -422,7 +429,8 @@ function procesarXlsx(arrayBuffer) {
   }
   const headerFields = filas[0].map(h => String(h).trim());
   const dataRows = filas.slice(1).map(r => r.map(v => String(v)));
-  procesarFilas(headerFields, dataRows, 'Formato 2 — CSV/XLSX alternativo (Excel)');
+  // Un XLSX binario no tiene BOM de texto: no aplica la detección acá.
+  procesarFilas(headerFields, dataRows, 'Formato 2 — CSV/XLSX alternativo (Excel)', false);
 }
 
 // ---------- Lógica de limpieza (Grupos 1, 2 y 3) ----------
@@ -456,7 +464,7 @@ function clasificarFila(fields, idx) {
   return null; // fila limpia
 }
 
-function procesarFilas(headers, dataRowsRaw, formatoLabel) {
+function procesarFilas(headers, dataRowsRaw, formatoLabel, bomDetectado) {
   const nCols = headers.length;
   const headersUp = headers.map(h => h.toUpperCase());
 
@@ -518,13 +526,14 @@ function procesarFilas(headers, dataRowsRaw, formatoLabel) {
 
   renderResultados({
     headers, limpias, eliminadas, motivos, txTypeOriginales,
-    montoClean, montoRemoved, formatoLabel
+    montoClean, montoRemoved, formatoLabel, bomDetectado
   });
 }
 
 // ---------- Serialización de archivos de salida ----------
 // Estructura idéntica al CSV oficial de Mercado Pago: separador coma,
-// y solo EXTERNAL_REFERENCE y METADATA entre comillas dobles.
+// y solo EXTERNAL_REFERENCE y METADATA entre comillas dobles. Los archivos
+// de salida nunca llevan BOM al inicio, tenga o no el original.
 
 function serializarFila(fields, headers) {
   return fields.map((v, i) => {
@@ -557,6 +566,9 @@ function renderResultados(r) {
   csvRemoved = huboEliminados ? construirCsvEliminado(r.headers, r.eliminadas) : '';
 
   document.getElementById('formatoBadge').textContent = r.formatoLabel;
+
+  const bomAviso = document.getElementById('bomAviso');
+  bomAviso.style.display = r.bomDetectado ? 'block' : 'none';
 
   const total = r.limpias.length + r.eliminadas.length;
   document.getElementById('sTotal').textContent = total;
